@@ -4,7 +4,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.5.1"]
-                 [incanter "1.5.5-SNAPSHOT"]]
+                 [incanter "1.5.4"]]
   :repl-options {:prompt
                  (fn [ns]
                    (str "\u001B[35m[\u001B[34m"
