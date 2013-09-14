@@ -1,12 +1,11 @@
 (ns mekena.linear-reg
-  (:require [incanter.core :as icore]
+  (:require [incanter.core :as incore]
             [incanter.io :as io]
-            [incanter.stats :as stats]
             [incanter.charts :as charts]))
 
 ;; Stanford Machine Learning using Clojure and Incanter
 ;; machine learning hw1: linear regression
-(icore/view (charts/scatter-plot
+(incore/view (charts/scatter-plot
               :col0
               :col1
               :data (io/read-dataset "./resources/ex1data1.txt")
@@ -60,7 +59,7 @@
   (drop (- iterations 10) (take iterations (iterate (partial calc-theta x y) [0 1]))))
 
 (defn gradient-descent
-  "Calculate gradient descent"
+  "Calculate gradient descent, returns intercept: theta-0 and slope: theta-1"
   [x y]
   (drop (dec iterations) (take iterations (iterate (partial calc-theta x y) [0 1]))))
 
@@ -90,3 +89,20 @@
        (gradient-descent-history x)
        (map (partial compute-mse x y))))
 
+;; now plot the regression
+(defn plot-linear-reg
+  [x y]
+  (let [view (charts/scatter-plot
+               :col0
+               :col1
+               :data (io/read-dataset "./resources/ex1data1.txt")
+               :x-label "Population of City in 10,000s"
+               :y-label "Profit in $10,000s")
+        slope-incpt (first (gradient-descent x y))
+        intercept (first slope-incpt)
+        slope (second slope-incpt)]
+    (incore/view (charts/add-function
+                  view
+                  (fn [x] (+ intercept (* x slope)))
+                  (apply min x)
+                  (apply max x)))))
