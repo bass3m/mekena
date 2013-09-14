@@ -5,16 +5,21 @@
 
 ;; Stanford Machine Learning using Clojure and Incanter
 ;; machine learning hw1: linear regression
-(incore/view (charts/scatter-plot
-              :col0
-              :col1
-              :data (io/read-dataset "./resources/ex1data1.txt")
-              :x-label "Population of City in 10,000s"
-              :y-label "Profit in $10,000s"))
-
 ;; config params
 (def alpha 0.01)
 (def iterations 1500)
+
+(def mtrx (io/read-dataset "./resources/ex1data1.txt"))
+;; select the x and y columns of the matrix
+(def xs (incore/sel mtrx :cols 0))
+(def ys (incore/sel mtrx :cols 1))
+
+(incore/view (charts/scatter-plot
+              :col0
+              :col1
+              :data mtrx
+              :x-label "Population of City in 10,000s"
+              :y-label "Profit in $10,000s"))
 
 (defn h-ftn
   "The hypothesis function : h-theta(x) = theta0 + (theta1 * x)
@@ -95,7 +100,7 @@
   (let [view (charts/scatter-plot
                :col0
                :col1
-               :data (io/read-dataset "./resources/ex1data1.txt")
+               :data mtrx
                :x-label "Population of City in 10,000s"
                :y-label "Profit in $10,000s")
         slope-incpt (first (gradient-descent x y))
