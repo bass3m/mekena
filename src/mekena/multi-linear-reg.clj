@@ -62,17 +62,16 @@
   [x y]
   (drop (- iterations 10) (take iterations (iterate (partial calc-theta x y) [0 1]))))
 
-;; need to group the xs together or just return all butlast
 (defn gradient-descent
   "Calculate gradient descent."
   ([mtrx] (gradient-descent mtrx iterations))
   ([mtrx iter]
    (let [x (prepare-x mtrx)
-         y (incore/sel mtrx :cols (count mtrx))]
+         y (incore/sel mtrx :cols (dec (incore/ncol mtrx)))]
      (drop (dec iter)
            (take iter
                  (iterate (partial calc-new-theta x y)
-                          (repeat (inc (count mtrx)) 1)))))))
+                          (repeat (incore/ncol mtrx) 1)))))))
 
 ;(defn predict-value
   ;[x xs ys]
