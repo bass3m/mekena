@@ -2,7 +2,8 @@
    (:require [incanter.core :as i]))
 
 (defn sigmoid
-  "sigmoid function: 1/(1+e^-z)"
+  "sigmoid function: 1/(1+e^-z)
+  Input can be a scalar, vector or matrix."
   [z]
-  (/ 1 (inc (i/exp (i/minus z)))))
+  (i/div 1 (i/plus 1 (i/exp (i/minus z)))))
 
