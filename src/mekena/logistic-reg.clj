@@ -58,25 +58,71 @@
 
 (defn compute-cost
   "Calculate the cost of using theta (mse : mean square error):
+   J(θ) =−1/m(log(g(Xθ))Ty+(log(1−g(Xθ)))T(1−y))
    -1/m Sigma (1,m)[ y.log( h(theta.x) ) + (1 - y).log( 1 - h(theta.x) )]
    input xs is dataset "
   [xs y theta]
   (let [normalized-x (normalize-features xs)
         theta-x      (i/mmult normalized-x theta)
         h-tx         (i/matrix-map hypothesis theta-x)
-        y-1-term     (i/mmult (i/trans y) (i/log h-tx))
-        y-0-term     (i/mmult (i/trans (i/minus 1 y)) (i/log (i/minus 1 h-tx)))
+        y-1-term     (i/mmult (i/trans (i/log h-tx)) y)
+        y-0-term     (i/mmult (i/trans (i/log (i/minus 1 h-tx))) (i/minus 1 y))
         m            (count y)]
     (-> y-1-term
         (i/plus y-0-term)
         (i/div (- m)))))
 
+  ;(let [normalized-x (normalize-features xs)
+        ;theta-x      (i/mmult normalized-x theta)
+        ;h-tx         (i/matrix-map hypothesis theta-x)
+        ;y-1-term     (i/mmult (i/trans y) (i/log h-tx))
+        ;y-0-term     (i/mmult (i/trans (i/minus 1 y)) (i/log (i/minus 1 h-tx)))
+        ;m            (count y)]
+    ;(-> y-1-term
+        ;(i/plus y-0-term)
+        ;(i/div (- m))))
+;; J(θ) =−1m(log(g(Xθ))Ty+(log(1−g(Xθ)))T(1−y))
 ;; deftest : compute-cost xs y [0 0 0] => 0.693
 ;; where: xs : (sel training-data :except-cols (dec (ncol training-data)))
 ;; y : (def y (sel training-data :cols (dec (ncol training-data))))
 
-(defn gradient
-  "Compute the partial derivatives and set gradient to the partial
-  derivatives of the cost w.r.t. each parameter in theta
-  gradient should have the same dimensions as theta"
-  [theta x y])
+(def alpha 0.01)
+(def iterations 1500)
+
+(defn calc-theta
+  "Gradient descent is: theta - (alpha/m).x^T(g(x.theta) - y)
+  calculate an iteration"
+  [xs y theta]
+  (let [xs' (i/trans xs)]
+    (->> theta
+         (i/mmult xs)
+         (i/matrix-map hypothesis)
+         (i/minus y)
+         (i/mmult xs')
+         (i/div (count xs))
+         (i/mult alpha)
+         (i/minus theta))))
+
+(defn gradient-descent
+  "Calculate gradient descent. Matrix contains multiple features with the y column
+  as the last column (the dependent variable).
+  An optional number of iterations can be passed as another parameter."
+  [iter y xs]
+  (drop (dec iter)
+        (take iter (iterate (partial calc-theta xs y)
+                            (repeat (i/ncol xs) 0)))))
+
+(defn logistic-regression
+  "Calculate gradient descent. input is Dataset containing multiple features
+  with the y column as the last column (the dependent variable).
+  An optional number of iterations can be passed as another parameter."
+  ([dataset] (logistic-regression dataset iterations))
+  ([dataset iters] (let [y (i/sel dataset :cols (dec (i/ncol dataset)))
+                         xs (i/sel dataset :except-cols (dec (i/ncol dataset)))]
+                     (->> (i/ncol xs)
+                          range
+                          (map (fn [c] (normalize (i/sel xs :cols c))))
+                          matrix
+                          trans
+                          prepare-features
+                          (gradient-descent iters y)))))
