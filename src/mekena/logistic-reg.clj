@@ -62,8 +62,9 @@
    -1/m Sigma (1,m)[ y.log( h(theta.x) ) + (1 - y).log( 1 - h(theta.x) )]
    input xs is dataset "
   [xs y theta]
-  (let [normalized-x (normalize-features xs)
-        theta-x      (i/mmult normalized-x theta)
+  (let [;normalized-x (normalize-features xs)
+        ;theta-x      (i/mmult normalized-x theta)
+        theta-x      (i/mmult xs theta)
         h-tx         (i/matrix-map hypothesis theta-x)
         y-1-term     (i/mmult (i/trans (i/log h-tx)) y)
         y-0-term     (i/mmult (i/trans (i/log (i/minus 1 h-tx))) (i/minus 1 y))
@@ -72,22 +73,12 @@
         (i/plus y-0-term)
         (i/div (- m)))))
 
-  ;(let [normalized-x (normalize-features xs)
-        ;theta-x      (i/mmult normalized-x theta)
-        ;h-tx         (i/matrix-map hypothesis theta-x)
-        ;y-1-term     (i/mmult (i/trans y) (i/log h-tx))
-        ;y-0-term     (i/mmult (i/trans (i/minus 1 y)) (i/log (i/minus 1 h-tx)))
-        ;m            (count y)]
-    ;(-> y-1-term
-        ;(i/plus y-0-term)
-        ;(i/div (- m))))
-;; J(θ) =−1m(log(g(Xθ))Ty+(log(1−g(Xθ)))T(1−y))
 ;; deftest : compute-cost xs y [0 0 0] => 0.693
 ;; where: xs : (sel training-data :except-cols (dec (ncol training-data)))
 ;; y : (def y (sel training-data :cols (dec (ncol training-data))))
 
 (def alpha 0.01)
-(def iterations 1500)
+(def iterations 400)
 
 (defn calc-theta
   "Gradient descent is: theta - (alpha/m).x^T(g(x.theta) - y)
