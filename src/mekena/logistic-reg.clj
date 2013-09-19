@@ -21,6 +21,7 @@
           :x-label "Exam 1 score"
           :y-label "Exam 2 score"))
 
+;; XXX this doesn't work unless you are using trunk incanter with my fix
 (defn sigmoid
   "sigmoid function: 1/(1+e^-z)
   Input can be a scalar, vector or matrix."
@@ -126,3 +127,61 @@
                          xs (i/sel dataset :except-cols (dec (i/ncol dataset)))
                          normalized-x (normalize-features xs)]
                      (gradient-descent iters y normalized-x))))
+
+(defn plot-logistic-reg []
+  (let [view (charts/scatter-plot
+                :col0
+                :col1
+                :group-by :col2
+                :data training-data
+                :x-label "Exam 1 score"
+                :y-label "Exam 2 score")
+        thetas (first (logistic-regression training-data))
+        slope (* (second thetas) (/ 1 (- (nth thetas 2))))
+        xs (i/sel training-data :cols 1)
+        min-x (apply min xs)
+        max-x (apply max xs)
+        intercept (+ max-x min-x)]
+    (i/view (charts/add-function
+              view
+              ;; x2 = −1/θ2(θ1x1+θ0) when θX = 0
+              ;; boundary occurs P(y=1 | X;θ)= hθ(x)=0.5 and sigmoid of 0.5
+              ;; occurs as input is 0
+              (fn [x] (+ intercept
+                         (* (/ 1 (- (nth thetas 2)))
+                            (+ (first thetas) (* x (second thetas))))))
+              min-x max-x))))
+
+(defn normalize-new-x
+  "normalize a new feature value. Input is whole feature vector
+  feature index (column) and new feature value"
+  [xs n score]
+  (let [x (i/sel xs :cols n)
+        mean (stats/mean x)
+        sd (stats/sd x)]
+    ((comp (fn [exam-score] (/ exam-score sd))
+           (fn [exam-score] (- exam-score mean))) score)))
+
+(defn prediction-fn
+  "Predict admittance for exam grades. Inputs: vector containing exam scores,
+  vector containing theta values.
+  make decision based on return of sigmoid ftn on theta.X > 0.5"
+  [training-data scores]
+  (let [thetas (first (logistic-regression training-data))
+        xs (i/sel training-data :except-cols (dec (i/ncol training-data)))]
+    (as-> scores _
+          (map (partial normalize-new-x xs) (range) _)
+          (matrix _)
+          (trans _)
+          (prepare-features _)
+          (i/mmult _ thetas)
+          (i/matrix-map hypothesis _)
+          (first _))))
+
+(defn admitted?
+  "Are scores sufficient to get admitted ?"
+  [training-data scores]
+  (let [probability (prediction-fn training-data scores)]
+    (if (>= probability 0.5)
+      (println "Admitted: " probability)
+      (println "Not Admitted: " probability))))
