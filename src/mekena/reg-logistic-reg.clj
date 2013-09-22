@@ -24,37 +24,14 @@
           :x-label "Microchip test 1"
           :y-label "Microchip test 2"))
 
+(def alpha 1)
+(def iterations 400)
 (def lambda 1)
 
 (defn hypothesis
   "sigmoid function: 1/(1+e^-z)"
   [z]
   (/ 1 (inc (Math/exp (- z)))))
-
-(defn map-features
-  "Return vector containing powers that features will be used to generate
-  the regularization parameter. map the features into all polynomial terms
-  of x1 and x2 up to the degree'th power. Assumes only 2 features (for now)"
-  [degree]
-  (for [i (range 1 (inc degree)) j (range (inc i))] [(- i j) j]))
-
-(defn regularize-features [x1 x2 poly-vec]
-  (map (fn [x1i x2i]
-         (reduce (fn [acc [x1-term x2-term]]
-                       (conj acc (i/mult (i/pow x1i x1-term)
-                                             (i/pow x2i x2-term))))
-                     [] poly-vec)) x1 x2))
-
-(defn regularize
-  [xs]
-  (let [x1 (i/sel qa-data :cols 0)
-        x2 (i/sel qa-data :cols 1)
-        polynomial-terms (map-features 6)
-        regularized (regularize-features x1 x2 polynomial-terms)]
-    (-> x1
-        i/nrow
-        (repeat 1)
-        (i/bind-columns regularized))))
 
 ; X : 118x28 theta is 28x1
 ; test: (compute-cost (regularize qa-data) accepted (repeat 28 0))
@@ -99,10 +76,91 @@
          (i/mmult xs')
          (i/mult alpha (/ -1 (count xs))))))
 
+(defn calc-regularized-theta
+  [theta lambda m]
+  (let [theta-size (count theta)
+        ones (i/matrix 1 theta-size theta-size)
+        iden (i/identity-matrix theta-size)]
+    (->> iden
+         (i/minus ones)
+         first
+         i/trans
+         (i/mult theta lambda (/ 1 m)))))
+
+(defn calc-regularized-theta
+  [theta lambda m]
+  (let [theta-size (count theta)
+        ones (i/matrix theta-size theta-size)
+        iden (i/identity-matrix theta-size)]
+  (-> theta
+      (assoc 0 0)
+      (i/mult lambda (/ 1 m)))))
+
 (defn calc-next-theta
   "calculate the next theta value"
   [xs y theta]
   (->> theta
        (calc-theta xs y)
+       (i/plus (calc-regularized-theta theta lambda (count xs)))
        (i/minus theta)))
 
+(defn gradient-descent
+  "Calculate gradient descent. Matrix contains multiple features with the y column
+  as the last column (the dependent variable).
+  An optional number of iterations can be passed as another parameter."
+  [iter y xs]
+  (drop (dec iter)
+        (take iter (iterate (partial calc-next-theta xs y)
+                            (repeat (i/ncol xs) 0))))
+
+(defn map-features
+  "Return vector containing powers that features will be used to generate
+  the regularization parameter. map the features into all polynomial terms
+  of x1 and x2 up to the degree'th power. Assumes only 2 features (for now)"
+  [degree]
+  (for [i (range 1 (inc degree)) j (range (inc i))] [(- i j) j]))
+
+(defn regularize-features [x1 x2 poly-vec]
+  (map (fn [x1i x2i]
+         (reduce (fn [acc [x1-term x2-term]]
+                       (conj acc (i/mult (i/pow x1i x1-term)
+                                             (i/pow x2i x2-term))))
+                     [] poly-vec)) x1 x2))
+
+(defn regularize
+  [xs]
+  (let [x1 (i/sel qa-data :cols 0)
+        x2 (i/sel qa-data :cols 1)
+        polynomial-terms (map-features 6)
+        regularized (regularize-features x1 x2 polynomial-terms)]
+    (-> x1
+        i/nrow
+        (repeat 1)
+        (i/bind-columns regularized))))
+
+(defn regularized-logistic-regression
+  "Calculate gradient descent. input is Dataset containing multiple features
+  with the y column as the last column (the dependent variable).
+  An optional number of iterations can be passed as another parameter."
+  ([dataset] (regularized-logistic-regression dataset iterations))
+  ([dataset iters] (let [y (i/sel dataset :cols (dec (i/ncol dataset)))
+                         xs (i/sel dataset :except-cols (dec (i/ncol dataset)))
+                         reg-x (regularize xs)]
+                     (first (gradient-descent iters y reg-x)))))
+
+(defn predict
+  "Predict the outcome (y values) given x and the calculated thetas"
+  [xs theta]
+  (->> theta
+       (i/mmult xs)
+       (i/matrix-map (comp (fn [y] (cond-> 0 (>= y 0.5) inc)) hypothesis))))
+
+(defn prediction-accuracy
+  [predicted actual]
+  (let [accurate-count (->> actual
+                            (map (fn [p a] (= p a)) predicted)
+                            (filter true?)
+                            count)]
+    (println "Prediction accuracy:" (double (* 100
+                                               (/ accurate-count
+                                                 (count predicted)))) "%")))
