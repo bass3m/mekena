@@ -1,5 +1,6 @@
 (ns mekena.reg-logistic-reg
-  (:require [incanter.core :as i]
+  (:require [mekena.utils :utils]
+            [incanter.core :as i]
             [incanter.io :as io]
             [incanter.stats :as stats]
             [incanter.charts :as charts]))
@@ -28,53 +29,21 @@
 (def iterations 400)
 (def lambda 1)
 
-(defn hypothesis
-  "sigmoid function: 1/(1+e^-z)"
-  [z]
-  (/ 1 (inc (Math/exp (- z)))))
-
 ; X : 118x28 theta is 28x1
 ; test: (compute-cost (regularize qa-data) accepted (repeat 28 0))
 ; 6.93e-01
-(defn compute-cost
-  "Calculate the cost of using theta (mse : mean square error):
-   J(θ) = −1/m(log(g(Xθ))^T.y + (log(1−g(Xθ)))^T.(1−y))
-   -1/m Sigma (1,m)[ y.log( h(theta.x) ) + (1 - y).log( 1 - h(theta.x) )]
-   input xs is dataset "
-  [xs y theta]
-  (let [theta-x      (i/mmult xs theta)
-        h-tx         (i/matrix-map hypothesis theta-x)
-        y-1-term     (i/mmult (i/trans (i/log h-tx)) y)
-        y-0-term     (i/mmult (i/trans (i/log (i/minus 1 h-tx))) (i/minus 1 y))
-        m            (count y)]
-    (-> y-1-term
-        (i/plus y-0-term)
-        (i/div (- m)))))
 
 (defn regularized-cost
   "Compute the regularized cost, which adds the regularized parameter to the
   logistic regression cost: adds λ/2m .Sigma j=(1,n) θj^2"
   [xs y theta]
-  (let [cost (compute-cost xs y theta)]
+  (let [cost (utils/compute-cost xs y theta)]
     (-> theta
         ((juxt i/trans identity))
         ((partial apply i/mmult))
         (i/mult lambda)
         (i/div (* 2 (count theta)))
         (i/plus cost))))
-
-(defn calc-theta
-  "θ = θ − α/m.X^T.(g(Xθ)−y⃗ ))
-  Gradient descent is: theta - (alpha/m).x^T(g(x.theta) - y)
-  calculate an iteration"
-  [xs y theta]
-  (let [xs' (i/trans xs)]
-    (->> theta
-         (i/mmult xs)
-         (i/matrix-map hypothesis)
-         (i/minus y)
-         (i/mmult xs')
-         (i/mult alpha (/ -1 (count xs))))))
 
 (defn calc-regularized-theta
   [theta lambda m]
@@ -87,31 +56,13 @@
          i/trans
          (i/mult theta lambda (/ 1 m)))))
 
-(defn calc-regularized-theta
-  [theta lambda m]
-  (let [theta-size (count theta)
-        ones (i/matrix theta-size theta-size)
-        iden (i/identity-matrix theta-size)]
-  (-> theta
-      (assoc 0 0)
-      (i/mult lambda (/ 1 m)))))
-
 (defn calc-next-theta
   "calculate the next theta value"
   [xs y theta]
   (->> theta
-       (calc-theta xs y)
+       (utils/calc-theta xs y)
        (i/plus (calc-regularized-theta theta lambda (count xs)))
        (i/minus theta)))
-
-(defn gradient-descent
-  "Calculate gradient descent. Matrix contains multiple features with the y column
-  as the last column (the dependent variable).
-  An optional number of iterations can be passed as another parameter."
-  [iter y xs]
-  (drop (dec iter)
-        (take iter (iterate (partial calc-next-theta xs y)
-                            (repeat (i/ncol xs) 0))))
 
 (defn map-features
   "Return vector containing powers that features will be used to generate
@@ -146,14 +97,14 @@
   ([dataset iters] (let [y (i/sel dataset :cols (dec (i/ncol dataset)))
                          xs (i/sel dataset :except-cols (dec (i/ncol dataset)))
                          reg-x (regularize xs)]
-                     (first (gradient-descent iters y reg-x)))))
+                     (first (utils/gradient-descent iters y reg-x)))))
 
 (defn predict
   "Predict the outcome (y values) given x and the calculated thetas"
   [xs theta]
   (->> theta
        (i/mmult xs)
-       (i/matrix-map (comp (fn [y] (cond-> 0 (>= y 0.5) inc)) hypothesis))))
+       (i/matrix-map (comp (fn [y] (cond-> 0 (>= y 0.5) inc)) utils/hypothesis))))
 
 (defn prediction-accuracy
   [predicted actual]

@@ -1,5 +1,6 @@
 (ns mekena.logistic-reg
-  (:require [incanter.core :as i]
+  (:require [mekena.utils :as utils]
+            [incanter.core :as i]
             [incanter.io :as io]
             [incanter.stats :as stats]
             [incanter.charts :as charts]))
@@ -28,11 +29,6 @@
   [z]
   (i/div 1 (i/plus 1 (i/exp (i/minus z)))))
 
-(defn hypothesis
-  "sigmoid function: 1/(1+e^-z)"
-  [z]
-  (/ 1 (inc (Math/exp (- z)))))
-
 (defn prepare-features
   "append a column of 1s as feature 0"
   [xs]
@@ -58,21 +54,6 @@
        trans
        prepare-features))
 
-(defn compute-cost
-  "Calculate the cost of using theta (mse : mean square error):
-   J(θ) = −1/m(log(g(Xθ))^T.y + (log(1−g(Xθ)))^T.(1−y))
-   -1/m Sigma (1,m)[ y.log( h(theta.x) ) + (1 - y).log( 1 - h(theta.x) )]
-   input xs is dataset "
-  [xs y theta]
-  (let [theta-x      (i/mmult xs theta)
-        h-tx         (i/matrix-map hypothesis theta-x)
-        y-1-term     (i/mmult (i/trans (i/log h-tx)) y)
-        y-0-term     (i/mmult (i/trans (i/log (i/minus 1 h-tx))) (i/minus 1 y))
-        m            (count y)]
-    (-> y-1-term
-        (i/plus y-0-term)
-        (i/div (- m)))))
-
 ;; deftest : compute-cost xs y [0 0 0] => 0.693
 ;; where: xs : (sel training-data :except-cols (dec (ncol training-data)))
 ;; y : (def y (sel training-data :cols (dec (ncol training-data))))
@@ -84,35 +65,12 @@
 (def alpha 1)
 (def iterations 400)
 
-(defn calc-theta
-  "θ = θ − α/m.X^T.(g(Xθ)−y⃗ ))
-  Gradient descent is: theta - (alpha/m).x^T(g(x.theta) - y)
-  calculate an iteration"
-  [xs y theta]
-  (let [xs' (i/trans xs)]
-    (->> theta
-         (i/mmult xs)
-         (i/matrix-map hypothesis)
-         (i/minus y)
-         (i/mmult xs')
-         (i/mult alpha (/ -1 (count xs))))))
-
 (defn calc-next-theta
   "calculate the next theta value"
   [xs y theta]
   (->> theta
-       (calc-theta xs y)
+       (utils/calc-theta xs y)
        (i/minus theta)))
-
-(defn gradient-descent
-  "Calculate gradient descent. Matrix contains multiple features with the y column
-  as the last column (the dependent variable).
-  An optional number of iterations can be passed as another parameter."
-  [iter y xs]
-  (drop (dec iter)
-        (take iter (iterate (partial calc-next-theta xs y)
-                            (repeat (i/ncol xs) 0)))))
-
 
 ;; test that cost of theta at 400 iterations is 0.204
 ;; (compute-cost xn y (first (logistic-regression training-data 400)))
@@ -126,7 +84,7 @@
   ([dataset iters] (let [y (i/sel dataset :cols (dec (i/ncol dataset)))
                          xs (i/sel dataset :except-cols (dec (i/ncol dataset)))
                          normalized-x (normalize-features xs)]
-                     (gradient-descent iters y normalized-x))))
+                     (utils/gradient-descent iters y normalized-x))))
 
 (defn plot-logistic-reg []
   (let [view (charts/scatter-plot
@@ -175,7 +133,7 @@
           (trans _)
           (prepare-features _)
           (i/mmult _ thetas)
-          (i/matrix-map hypothesis _)
+          (i/matrix-map utils/hypothesis _)
           (first _))))
 
 (defn admitted?
