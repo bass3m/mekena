@@ -1,4 +1,4 @@
-(ns mekena.linear-reg
+(ns mekena.linear
   (:require [incanter.core :as incore]
             [incanter.io :as io]
             [incanter.charts :as charts]))

@@ -1,8 +1,6 @@
 (ns mekena.utils
   (:require [incanter.core :as i]
-            [incanter.io :as io]
-            [incanter.stats :as stats]
-            [incanter.charts :as charts]))
+            [incanter.stats :as stats]))
 
 (defn rpartial
   "right currying"
@@ -29,7 +27,7 @@
    input xs is dataset "
   [xs y theta]
   (let [theta-x      (i/mmult xs theta)
-        h-tx         (i/matrix-map utils/hypothesis theta-x)
+        h-tx         (i/matrix-map hypothesis theta-x)
         y-1-term     (i/mmult (i/trans (i/log h-tx)) y)
         y-0-term     (i/mmult (i/trans (i/log (i/minus 1 h-tx))) (i/minus 1 y))
         m            (count y)]
@@ -42,7 +40,8 @@
   Gradient descent is: theta - (alpha/m).x^T(g(x.theta) - y)
   calculate an iteration"
   [xs y theta]
-  (let [xs' (i/trans xs)]
+  (let [xs' (i/trans xs)
+        alpha 1]
     (->> theta
          (i/mmult xs)
          (i/matrix-map hypothesis)
@@ -54,7 +53,7 @@
   "Calculate gradient descent. Matrix contains multiple features with the y column
   as the last column (the dependent variable).
   An optional number of iterations can be passed as another parameter."
-  [iter y xs]
+  [iter y xs calc-next-theta]
   (drop (dec iter)
         (take iter (iterate (partial calc-next-theta xs y)
                             (repeat (i/ncol xs) 0)))))

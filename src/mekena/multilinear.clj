@@ -1,4 +1,4 @@
-(ns mekena.multi-linear-reg
+(ns mekena.multilinear
   (:require [incanter.core :as incore]
             [incanter.io :as io]
             [incanter.stats :as stats]

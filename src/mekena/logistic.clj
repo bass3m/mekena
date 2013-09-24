@@ -1,4 +1,4 @@
-(ns mekena.logistic-reg
+(ns mekena.logistic
   (:require [mekena.utils :as utils]
             [incanter.core :as i]
             [incanter.io :as io]
@@ -84,7 +84,7 @@
   ([dataset iters] (let [y (i/sel dataset :cols (dec (i/ncol dataset)))
                          xs (i/sel dataset :except-cols (dec (i/ncol dataset)))
                          normalized-x (normalize-features xs)]
-                     (utils/gradient-descent iters y normalized-x))))
+                     (utils/gradient-descent iters y normalized-x calc-next-theta))))
 
 (defn plot-logistic-reg []
   (let [view (charts/scatter-plot
