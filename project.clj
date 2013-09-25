@@ -1,5 +1,5 @@
 (defproject mekena "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
+  :description "ML fun"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
@@ -9,4 +9,7 @@
                  (fn [ns]
                    (str "\u001B[35m[\u001B[34m"
                         ns "\u001B[35m]\u001B[33mclj-λ)\u001B[m "))
-                 :welcome (println "Welcome to Clojure!")})
+                 :welcome (println "Welcome to Clojure!")}
+  :min-lein-version "2.0.0"
+  :jvm-opts [;;"-Djava.awt.headless=true"
+             "-Xms256m" "-Xmx1024m"])
