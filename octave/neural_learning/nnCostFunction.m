@@ -86,6 +86,9 @@ regularized_sum = (lambda/(2*m)) * (sum(sum(theta1 .^ 2)) + sum(sum(theta2 .^ 2)
 
 % regularized cost
 J = J + regularized_sum;
+
+% backpropagation algorithm
+
 % -------------------------------------------------------------
 
 % =========================================================================
