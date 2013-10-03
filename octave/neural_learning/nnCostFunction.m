@@ -76,7 +76,16 @@ end
 
 J = (1/m) * sum(sum((-yk) .* log(h_theta') - (1-yk) .* log(1 - h_theta')));
 
+% calculate regularized cost without the bias term
+% get rid of the bias
+theta1 = Theta1(:,2:(size(Theta1,2)));
+theta2 = Theta2(:,2:(size(Theta2,2)));
 
+% lambda/2m * Sum(Sum(Theta1)^2) + Sum(Sum(Theta2)^2)
+regularized_sum = (lambda/(2*m)) * (sum(sum(theta1 .^ 2)) + sum(sum(theta2 .^ 2)));
+
+% regularized cost
+J = J + regularized_sum;
 % -------------------------------------------------------------
 
 % =========================================================================
