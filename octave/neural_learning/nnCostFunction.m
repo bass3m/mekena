@@ -64,9 +64,11 @@ Theta2_grad = zeros(size(Theta2));
 
 % perform foward propagation
 % a1 = X; a2 = sigmoid(z2)
-a2 = sigmoid([ones(m, 1) X] * Theta1');
+a1 = [ones(m, 1) X];
+z2 = a1 * Theta1';
+a2 = [ones(m,1) sigmoid(z2)];
 % h_theta is output = a3 = sigmoid(z3)
-h_theta = sigmoid([ones(m, 1) a2] * Theta2');
+h_theta = sigmoid(a2 * Theta2');
 
 % y(k) - recode the labels as vectors of 0 or 1
 yk = zeros(num_labels, m);
@@ -87,8 +89,22 @@ regularized_sum = (lambda/(2*m)) * (sum(sum(theta1 .^ 2)) + sum(sum(theta2 .^ 2)
 % regularized cost
 J = J + regularized_sum;
 
-% backpropagation algorithm
+%
+% vectorized backpropagation algorithm
+%
+% first calculate delta for output unit
+delta3 = h_theta - yk';
+delta2 = (delta3 * theta2) .* sigmoidGradient(z2);
 
+% now calculate the partial derivatives
+Theta1_grad = delta2' * a1;
+Theta2_grad = delta3' * a2;
+
+% need to zero out bias term
+Theta1_grad = Theta1_grad / m + (lambda / m) * [zeros(hidden_layer_size,1) Theta1(:,2:end)];
+Theta2_grad = Theta2_grad / m + (lambda / m) * [zeros(num_labels,1) Theta2(:,2:end)];
+
+%%
 % -------------------------------------------------------------
 
 % =========================================================================
